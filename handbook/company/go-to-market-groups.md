@@ -16,8 +16,8 @@ When communicating with future or current customers, hand offs [between departme
 
 | GTM group                            | Goal |
 |:-------------------------------------|:------------------------------------|
-| [🦄Unicorns](https://fleetdm.com/handbook/company/go-to-market-groups#unicorns)             | Provide the best possible customer experience for organizations with 300+ hosts. 
-| [🌐Buy online](https://fleetdm.com/handbook/company/go-to-market-groups#buy-online)         | Provide the best possible customer experience for organizations and contributors with less than 300 hosts that prefer a more self-service experience.
+| [🦄Unicorns](https://fleetdm.com/handbook/company/go-to-market-groups#unicorns)             | Provide the best possible customer experience for organizations with 700+ hosts. 
+| [🌐Buy online](https://fleetdm.com/handbook/company/go-to-market-groups#buy-online)         | Provide the best possible customer experience for organizations and contributors with less than 700 hosts that prefer a more self-service experience.
 
 
 ### 🦄 Unicorns
@@ -162,7 +162,7 @@ Event-goers expect a timely [follow-up from Fleet](https://fleetdm.com/handbook/
 
 #### Podcast
 
-Fleet has created the [ExpedITioners podcast](https://expeditioners.podbean.com/) to open discussions and help IT and security professionals get ahead of the curve and prepare themselves and their organizations for what lies ahead. 
+Fleet has created a [podcast](https://expeditioners.podbean.com/) to open discussions and help IT and security professionals get ahead of the curve and prepare themselves and their organizations for what lies ahead. 
 
 
 #### Video
@@ -236,7 +236,7 @@ Then, at-mention the [Head of Digital Experience](https://fleetdm.com/handbook/d
 The following contract is ready to sign and has been routed to the CEO for signature: CONTRACT_DOC_URL_FROM_GOOGLE_DRIVE
 ```
 
-Please use [Fleet's billing email address](https://fleetdm.com/handbook/company/communications#email-relays) for all contracts and never include individual emails in any company agreement. If the agreement includes any individual emails, please remove them before routing the agreement to the CEO for signature.
+Please use [Fleet's billing email address](https://fleetdm.com/handbook/company/communications#email-relays) for all contracts and never include individual emails in any company agreement. If the agreement includes any individual emails, remove them before routing the agreement to the CEO for signature.
 
 
 ### Vendor questionnaires 
