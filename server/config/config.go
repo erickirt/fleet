@@ -92,14 +92,16 @@ type ServerConfig struct {
 	Cert                        string
 	Key                         string
 	TLS                         bool
-	TLSProfile                  string `yaml:"tls_compatibility"`
-	URLPrefix                   string `yaml:"url_prefix"`
-	Keepalive                   bool   `yaml:"keepalive"`
-	SandboxEnabled              bool   `yaml:"sandbox_enabled"`
-	WebsocketsAllowUnsafeOrigin bool   `yaml:"websockets_allow_unsafe_origin"`
-	FrequentCleanupsEnabled     bool   `yaml:"frequent_cleanups_enabled"`
-	ForceH2C                    bool   `yaml:"force_h2c"`
-	PrivateKey                  string `yaml:"private_key"`
+	TLSProfile                  string        `yaml:"tls_compatibility"`
+	URLPrefix                   string        `yaml:"url_prefix"`
+	Keepalive                   bool          `yaml:"keepalive"`
+	SandboxEnabled              bool          `yaml:"sandbox_enabled"`
+	WebsocketsAllowUnsafeOrigin bool          `yaml:"websockets_allow_unsafe_origin"`
+	FrequentCleanupsEnabled     bool          `yaml:"frequent_cleanups_enabled"`
+	ForceH2C                    bool          `yaml:"force_h2c"`
+	PrivateKey                  string        `yaml:"private_key"`
+	VPPVerifyTimeout            time.Duration `yaml:"vpp_verify_timeout"`
+	VPPVerifyRequestDelay       time.Duration `yaml:"vpp_verify_request_delay"`
 }
 
 func (s *ServerConfig) DefaultHTTPServer(ctx context.Context, handler http.Handler) *http.Server {
@@ -137,8 +139,9 @@ func (s *ServerConfig) DefaultHTTPServer(ctx context.Context, handler http.Handl
 
 // AuthConfig defines configs related to user authorization
 type AuthConfig struct {
-	BcryptCost  int `yaml:"bcrypt_cost"`
-	SaltKeySize int `yaml:"salt_key_size"`
+	BcryptCost               int           `yaml:"bcrypt_cost"`
+	SaltKeySize              int           `yaml:"salt_key_size"`
+	SsoSessionValidityPeriod time.Duration `yaml:"sso_session_validity_period"`
 }
 
 // AppConfig defines configs related to HTTP
@@ -588,41 +591,57 @@ type PackagingConfig struct {
 // structs, Manager.addConfigs and Manager.LoadConfig should be
 // updated to set and retrieve the configurations as appropriate.
 type FleetConfig struct {
-	Mysql            MysqlConfig
-	MysqlReadReplica MysqlConfig `yaml:"mysql_read_replica"`
-	Redis            RedisConfig
-	Server           ServerConfig
-	Auth             AuthConfig
-	App              AppConfig
-	Session          SessionConfig
-	Osquery          OsqueryConfig
-	Activity         ActivityConfig
-	Logging          LoggingConfig
-	Firehose         FirehoseConfig
-	Kinesis          KinesisConfig
-	Lambda           LambdaConfig
-	S3               S3Config
-	Email            EmailConfig
-	SES              SESConfig
-	PubSub           PubSubConfig
-	Filesystem       FilesystemConfig
-	Webhook          WebhookConfig
-	KafkaREST        KafkaRESTConfig
-	License          LicenseConfig
-	Vulnerabilities  VulnerabilitiesConfig
-	Upgrades         UpgradesConfig
-	Sentry           SentryConfig
-	GeoIP            GeoIPConfig
-	Prometheus       PrometheusConfig
-	Packaging        PackagingConfig
-	MDM              MDMConfig
-	Calendar         CalendarConfig
-	Partnerships     PartnershipsConfig
+	Mysql                      MysqlConfig
+	MysqlReadReplica           MysqlConfig `yaml:"mysql_read_replica"`
+	Redis                      RedisConfig
+	Server                     ServerConfig
+	Auth                       AuthConfig
+	App                        AppConfig
+	Session                    SessionConfig
+	Osquery                    OsqueryConfig
+	Activity                   ActivityConfig
+	Logging                    LoggingConfig
+	Firehose                   FirehoseConfig
+	Kinesis                    KinesisConfig
+	Lambda                     LambdaConfig
+	S3                         S3Config
+	Email                      EmailConfig
+	SES                        SESConfig
+	PubSub                     PubSubConfig
+	Filesystem                 FilesystemConfig
+	Webhook                    WebhookConfig
+	KafkaREST                  KafkaRESTConfig
+	License                    LicenseConfig
+	Vulnerabilities            VulnerabilitiesConfig
+	Upgrades                   UpgradesConfig
+	Sentry                     SentryConfig
+	GeoIP                      GeoIPConfig
+	Prometheus                 PrometheusConfig
+	Packaging                  PackagingConfig
+	MDM                        MDMConfig
+	Calendar                   CalendarConfig
+	Partnerships               PartnershipsConfig
+	MicrosoftCompliancePartner MicrosoftCompliancePartnerConfig `yaml:"microsoft_compliance_partner"`
 }
 
 type PartnershipsConfig struct {
 	EnableSecureframe bool `yaml:"enable_secureframe"`
 	EnablePrimo       bool `yaml:"enable_primo"`
+}
+
+// MicrosoftCompliancePartnerConfig holds the server configuration for the "Conditional access" feature.
+// Currently only set on Cloud environments.
+type MicrosoftCompliancePartnerConfig struct {
+	// ProxyAPIKey is a shared key required to use the Microsoft Compliance Partner proxy API (fleetdm.com).
+	ProxyAPIKey string `yaml:"proxy_api_key"`
+	// ProxyURI is the URI of the Microsoft Compliance Partner proxy (for development/testing).
+	ProxyURI string `yaml:"proxy_uri"`
+}
+
+// IsSet returns if the compliance partner configuration is set.
+// Currently only set on Cloud environments.
+func (m MicrosoftCompliancePartnerConfig) IsSet() bool {
+	return m.ProxyAPIKey != ""
 }
 
 type MDMConfig struct {
@@ -1076,6 +1095,8 @@ func (man Manager) addConfigs() {
 	man.addConfigBool("server.frequent_cleanups_enabled", false, "Enable frequent cleanups of expired data (15 minute interval)")
 	man.addConfigBool("server.force_h2c", false, "Force the fleet server to use HTTP2 cleartext aka h2c (ignored if using TLS)")
 	man.addConfigString("server.private_key", "", "Used for encrypting sensitive data, such as MDM certificates.")
+	man.addConfigDuration("server.vpp_verify_timeout", 5*time.Minute, "Maximum amout of time to wait for VPP app install verification")
+	man.addConfigDuration("server.vpp_verify_request_delay", 5*time.Second, "Delay in between requests to verify VPP app installs")
 
 	// Hide the sandbox flag as we don't want it to be discoverable for users for now
 	man.hideConfig("server.sandbox_enabled")
@@ -1085,6 +1106,8 @@ func (man Manager) addConfigs() {
 		"Bcrypt iterations")
 	man.addConfigInt("auth.salt_key_size", 24,
 		"Size of salt for passwords")
+	man.addConfigDuration("auth.sso_session_validity_period", 5*time.Minute,
+		"Timeout from SSO start to SSO callback")
 
 	// App
 	man.addConfigString("app.token_key", "CHANGEME",
@@ -1417,6 +1440,11 @@ func (man Manager) addConfigs() {
 
 	// Partnerships
 	man.addConfigBool("partnerships.enable_secureframe", false, "Point transparency URL at Secureframe landing page")
+
+	// Microsoft Compliance Partner
+	man.addConfigString("microsoft_compliance_partner.proxy_api_key", "", "Shared key required to use the Microsoft Compliance Partner proxy API")
+	man.addConfigString("microsoft_compliance_partner.proxy_uri", "https://fleetdm.com", "URI of the Microsoft Compliance Partner proxy (for development/testing)")
+
 	man.addConfigBool("partnerships.enable_primo", false, "Cosmetically disables team capabilities in the UI")
 }
 
@@ -1493,10 +1521,13 @@ func (man Manager) LoadConfig() FleetConfig {
 			FrequentCleanupsEnabled:     man.getConfigBool("server.frequent_cleanups_enabled"),
 			ForceH2C:                    man.getConfigBool("server.force_h2c"),
 			PrivateKey:                  man.getConfigString("server.private_key"),
+			VPPVerifyTimeout:            man.getConfigDuration("server.vpp_verify_timeout"),
+			VPPVerifyRequestDelay:       man.getConfigDuration("server.vpp_verify_request_delay"),
 		},
 		Auth: AuthConfig{
-			BcryptCost:  man.getConfigInt("auth.bcrypt_cost"),
-			SaltKeySize: man.getConfigInt("auth.salt_key_size"),
+			BcryptCost:               man.getConfigInt("auth.bcrypt_cost"),
+			SaltKeySize:              man.getConfigInt("auth.salt_key_size"),
+			SsoSessionValidityPeriod: man.getConfigDuration("auth.sso_session_validity_period"),
 		},
 		App: AppConfig{
 			TokenKeySize:              man.getConfigInt("app.token_key_size"),
@@ -1700,6 +1731,10 @@ func (man Manager) LoadConfig() FleetConfig {
 		Partnerships: PartnershipsConfig{
 			EnableSecureframe: man.getConfigBool("partnerships.enable_secureframe"),
 			EnablePrimo:       man.getConfigBool("partnerships.enable_primo"),
+		},
+		MicrosoftCompliancePartner: MicrosoftCompliancePartnerConfig{
+			ProxyAPIKey: man.getConfigString("microsoft_compliance_partner.proxy_api_key"),
+			ProxyURI:    man.getConfigString("microsoft_compliance_partner.proxy_uri"),
 		},
 	}
 
@@ -2024,8 +2059,9 @@ func TestConfig() FleetConfig {
 			InviteTokenValidityPeriod: 5 * 24 * time.Hour,
 		},
 		Auth: AuthConfig{
-			BcryptCost:  6, // Low cost keeps tests fast
-			SaltKeySize: 24,
+			BcryptCost:               6, // Low cost keeps tests fast
+			SaltKeySize:              24,
+			SsoSessionValidityPeriod: 5 * time.Minute,
 		},
 		Session: SessionConfig{
 			KeySize:  64,

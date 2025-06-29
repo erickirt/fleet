@@ -226,6 +226,10 @@ type HostListOptions struct {
 	ProfileUUIDFilter *string
 	// ProfileStatus is the status of the MDM configuration profile and filters hosts by that status.
 	ProfileStatusFilter *OSSettingsStatus
+	// BatchScriptExecutionStatusFilter filters hosts by the status of a batch script execution.
+	BatchScriptExecutionStatusFilter BatchScriptExecutionStatus
+	// BatchScriptExecutionIDFilter filters hosts by the ID of a batch script execution.
+	BatchScriptExecutionIDFilter *string
 }
 
 // TODO(Sarah): Are we missing any filters here? Should all MDM filters be included?
@@ -552,6 +556,28 @@ func (s DiskEncryptionStatus) IsValid() bool {
 	}
 }
 
+type BatchScriptExecutionStatus string
+
+const (
+	BatchScriptExecutionRan       BatchScriptExecutionStatus = "ran"
+	BatchScriptExecutionPending   BatchScriptExecutionStatus = "pending"
+	BatchScriptExecutionErrored   BatchScriptExecutionStatus = "errored"
+	BatchScriptExecutionCancelled BatchScriptExecutionStatus = "cancelled"
+)
+
+func (s BatchScriptExecutionStatus) IsValid() bool {
+	switch s {
+	case
+		BatchScriptExecutionRan,
+		BatchScriptExecutionPending,
+		BatchScriptExecutionErrored,
+		BatchScriptExecutionCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
 type ActionRequiredState string
 
 const (
@@ -791,6 +817,7 @@ type HostEndUser struct {
 	IdpUserName      string              `json:"idp_username,omitempty"`
 	IdpFullName      string              `json:"idp_full_name,omitempty"`
 	IdpGroups        []string            `json:"idp_groups,omitempty"`
+	Department       string              `json:"idp_department,omitempty"`
 	IdpInfoUpdatedAt *time.Time          `json:"idp_info_updated_at"`
 	OtherEmails      []HostDeviceMapping `json:"other_emails,omitempty"`
 }
